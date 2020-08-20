@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: ns-monitor
+  labels:
+    k8s-app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: alertmanager
+  template:
+    metadata:
+      labels:
+        k8s-app: alertmanager
+      annotations:
+        prometheus.io/scrape: 'true'
+    spec:
+      containers:
+        - name: prometheus-alertmanager
+          image: "prom/alertmanager:v0.19.0"
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 9093
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/alertmanager
+            #- name: alertmanager-data-volume
+            #  mountPath: "/alertmanager"
+          resources:
+            limits:
+              cpu: 100m
+              memory: 200Mi
+            requests:
+              cpu: 50m
+              memory: 200Mi
+      volumes:
+        - name: config-volume
+          configMap:
+            name: alertmanager-config
+        #- name: alertmanager-data-volume
+        #  persistentVolumeClaim:
+        #    claimName: alertmanager-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: ns-monitor
+  labels:
+     k8s-app: alertmanager
+  annotations:
+    prometheus.io/scrape: 'true'
+spec:
+  ports:
+    - name: http
+      port: 9093
+      protocol: TCP
+      targetPort: 9093
+      nodePort: 30006
+  selector:
+    k8s-app: alertmanager 
+  type: NodePort

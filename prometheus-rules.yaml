@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: ns-monitor
+  labels:
+    app: prometheus
+data:
+  rules.yml: |-
+    groups:
+    - name: NodeMemouryUsage
+      rules:
+      - alert: NodeMemoryUsage
+        expr: (node_memory_MemTotal_bytes - (node_memory_MemFree_bytes + node_memory_Buffers_bytes + node_memory_Cached_bytes)) / node_memory_MemTotal_bytes * 100 > 75
+        for: 1m
+        labels:
+          severity: "page"
+        annotations:
+          summary: "{{$labels.instance}}: 报警内存使用率过高"
+          description: "{{$labels.instance}}: 报警内存使用大于 75% (当前值: {{ $value }}"
+    - name: example
+      rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: "page"
+        annotations:
+          summary: "Instance {{ $labels.instance }} 报警停止工作"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} 报警已经停止工作5分钟了"

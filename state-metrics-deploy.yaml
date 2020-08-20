@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/version: v1.8.0
+  name: kube-state-metrics
+  namespace: ns-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kube-state-metrics
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
+      labels:
+        app.kubernetes.io/name: kube-state-metrics
+        app.kubernetes.io/version: v1.8.0
+    spec:
+      serviceAccountName: kube-state-metrics
+      containers:
+      - image: quay.io/coreos/kube-state-metrics:v1.8.0
+        imagePullPolicy: IfNotPresent
+        name: kube-state-metrics
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: sys-time
+          mountPath: /etc/localtime
+      volumes:
+        - name: sys-time
+          hostPath:
+            path: /etc/localtime
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: 'true'
+  labels:
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/version: v1.8.0
+  name: kube-state-metrics
+  namespace: ns-monitor
+spec:
+  type: NodePort
+  ports:
+  - name: kube-state-metrics
+    port: 3003
+    targetPort: 8080
+    nodePort: 30005
+  selector:
+    app.kubernetes.io/name: kube-state-metrics
